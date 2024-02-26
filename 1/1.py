@@ -48,7 +48,6 @@ def frec_magni_graph(signal, sample_rate):
 
 # Генерация звука
 signal, rate = generate_signal(5, 800)
-
 # Воспроизводим стерео звук
 sd.play(signal, rate)
 sd.wait()
