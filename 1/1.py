@@ -26,10 +26,10 @@ def generate_signal(duration: int, freq: int):
     return stereo_signal, sample_rate
 
 # Функция вычисления и визуализации АЧХ
-def frec_magni_graph(signal, freq: int):
+def frec_magni_graph(signal, sample_rate):
     # Вычисление амплитудного спектра сигнала
     fft_spectrum = np.fft.fft(signal)
-    magnitude_spectrum = 20 * np.log(np.abs(fft_spectrum))
+    magnitude_spectrum = 20 * np.log10(np.abs(fft_spectrum))
 
     # Генерация частотной оси
     freqs = np.fft.fftfreq(len(fft_spectrum), 1/sample_rate)
@@ -54,10 +54,10 @@ sd.play(signal, rate)
 sd.wait()
 
 # Сохраняем в файл
-sf.write("output_audio.wav", signal, rate)
+sf.write("1/output_audio.wav", signal, rate)
 
 #--------- Открываем файл для визуализации ------------
-signal, sample_rate = sf.read("output_audio.wav")
+signal, sample_rate = sf.read("1/output_audio.wav")
 t = [i/sample_rate for i in range(len(signal))]
 plt.figure(figsize=(12, 6))
 plt.plot(t, signal, label=['Левое ухо', "Правое ухо"], alpha=0.6)
@@ -67,7 +67,7 @@ plt.xlabel("Время (с)")
 plt.title("График сигнала для разных каналов")
 
 #---------- Вычисление и визуализация АЧХ ------------
-signal, sample_rate = sf.read("output_audio.wav")
+signal, sample_rate = sf.read("1/output_audio.wav")
 
 frec_magni_graph(signal[:,0], sample_rate)
 
