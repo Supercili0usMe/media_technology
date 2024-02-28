@@ -87,7 +87,7 @@ def create_noise(freq: int, amplitude: float, signal, sample_rate: int):
 signal, sample_rate = sf.read("2/input_audio.wav")
 amplitude_frequency_response(signal[:,0], sample_rate, '(исходный)')
 
-# Попускаем сигнал через ФВЧ и создаём АЧХ
+# Пропускаем сигнал через ФВЧ и создаём АЧХ
 signal = high_pass_filter(800, signal, sample_rate)
 amplitude_frequency_response(signal[:,0], sample_rate, '(после ФВЧ)')
 
@@ -101,12 +101,12 @@ signal, sample_rate = sf.read("2/extra_task_input.wav")
 amplitude_frequency_response(signal[:,0], sample_rate, '(исходный)')
 
 # Добавляем помеху, создаём АЧх, сохраняем файл
-signal = create_noise(12000, 0.5, signal, sample_rate)
+signal = create_noise(12000, 0.05, signal, sample_rate)
 amplitude_frequency_response(signal[:,0], sample_rate, '(c помехой)')
 sf.write("2/extra_task_noisy.wav", signal, sample_rate)
 
 # Пропускаем сигнал через РФ и создаём АЧХ
-signal = notch_filter(8000, 17000, signal, sample_rate)
+signal = notch_filter(9000, 17000, signal, sample_rate)
 amplitude_frequency_response(signal[:,0], sample_rate, '(после РФ)')
 
 # Выводим получившиеся рисунки + сохраняем в файл
