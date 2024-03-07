@@ -64,30 +64,61 @@ def amplitude_norm(signal, volume: float):
     output_signal = y.astype(np.int16)
     return output_signal
 
+def left_right_ocean(rate, duration, detailed_data: bool = False):
+    N = duration*rate
+    x1 = np.random.rand(N, 2)
+    f1_low, f1_up = 400, 900
+    b, a = signal.butter(2, [f1_low, f1_up], btype='bandpass', fs=sample_rate)
+    y1 = signal.lfilter(b, a, x1, axis=0)
+    y2 = np.zeros_like(y1)
+    for i in range(N):
+        y2[i,0] = np.sin(2*np.pi*i/N)
+        y2[i,1] = np.cos(2*np.pi*i/N)
+    y12 = y1 * y2
+    output_signal = amplitude_norm(y12, 0.5)
+
+    if detailed_data:
+        filter(b, a, sample_rate)
+        afr(output_signal[:,0], sample_rate)
+
+    return output_signal
 
 
 #------------------ Генерация звука (право <=> лево) -------------------
 sample_rate, duration = 44100, 10
-N = duration*sample_rate
-
-x1 = np.random.rand(N, 2)
-f1_low, f1_up = 500, 1000
-b, a = signal.butter(2, [f1_low, f1_up], btype='bandpass', fs=sample_rate)
-y1 = signal.lfilter(b, a, x1, axis=0)
-y2 = np.zeros_like(y1)
-for i in range(N):
-    y2[i,0] = np.sin(6*i/N)
-    y2[i,1] = np.cos(6*i/N)
-y12 = y1 * y2
-output_signal = amplitude_norm(y12, 0.5)
-
-filter(b, a, sample_rate)
+output_signal = left_right_ocean(sample_rate, duration, detailed_data=False)
 visualize(output_signal, sample_rate)
-afr(output_signal[:,0], sample_rate)
+
 plt.show()
 io.wavfile.write("4/test.wav", sample_rate, output_signal)
 
+#------------------ Генерация звука () -------------------
+N = sample_rate*duration
 
+x = np.random.rand(N, 2) * 2 - 0.5
+eps1 = 0.01
+dn1, up1 = 1 - eps1, 1 + eps1
+f1 = 880
+b, a = signal.butter(2, [dn1*f1, up1*f1], btype='bandpass', fs=sample_rate)
+y1 = signal.lfilter(b, a, x, axis=0)
+
+eps2 = 0.1
+dn2, up2 = 1 - eps2, 1 + eps2
+f2 = 7*f1
+b, a = signal.butter(2, [dn2*f2, up2*f2], btype='bandpass', fs=sample_rate)
+y2 = signal.lfilter(b, a, x, axis=0)
+
+y12 = np.zeros_like(y1)
+
+for i in range(N):
+    alfa = 1/(1 + np.exp(-10*(2*(i-N/2)/N)))
+    y12[i:,] = y1[i:,] * (1-alfa) + y2[i:,] * alfa
+    y12[i:,] = y12[i:,] * 0.5*(1-np.cos(2*np.pi*i*2/sample_rate))
+
+output_signal = amplitude_norm(y12, 0.5)
+visualize(output_signal, sample_rate)
+plt.show()
+io.wavfile.write("4/test2.wav", sample_rate, output_signal)
 '''
 TODO:
 [] Изучить шаблоны в методе, изменить параметры
