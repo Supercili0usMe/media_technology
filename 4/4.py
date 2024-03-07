@@ -113,7 +113,7 @@ y12 = np.zeros_like(y1)
 for i in range(N):
     alfa = 1/(1 + np.exp(-10*(2*(i-N/2)/N)))
     y12[i:,] = y1[i:,] * (1-alfa) + y2[i:,] * alfa
-    y12[i:,] = y12[i:,] * 0.5*(1-np.cos(2*np.pi*i*2/sample_rate))
+    y12[i:,] = y12[i:,] * (0.5*(1-np.cos(2*np.pi*i*2/sample_rate)))**2
 
 output_signal = amplitude_norm(y12, 0.5)
 visualize(output_signal, sample_rate)
