@@ -104,7 +104,7 @@ y1 = signal.lfilter(b, a, x, axis=0)
 
 eps2 = 0.1
 dn2, up2 = 1 - eps2, 1 + eps2
-f2 = 7*f1
+f2 = 5*f1
 b, a = signal.butter(2, [dn2*f2, up2*f2], btype='bandpass', fs=sample_rate)
 y2 = signal.lfilter(b, a, x, axis=0)
 
@@ -113,12 +113,12 @@ y12 = np.zeros_like(y1)
 for i in range(N):
     alfa = 1/(1 + np.exp(-10*(2*(i-N/2)/N)))
     y12[i:,] = y1[i:,] * (1-alfa) + y2[i:,] * alfa
-    y12[i:,] = y12[i:,] * (0.5*(1-np.cos(2*np.pi*i*2/sample_rate)))**2
+    y12[i:,] = y12[i:,] * np.exp(-i/N)*np.cos(6*np.pi*i/N)
 
 output_signal = amplitude_norm(y12, 0.5)
 visualize(output_signal, sample_rate)
-plt.show()
 io.wavfile.write("4/test2.wav", sample_rate, output_signal)
+plt.show()
 '''
 TODO:
 [] Изучить шаблоны в методе, изменить параметры
