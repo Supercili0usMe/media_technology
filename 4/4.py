@@ -83,42 +83,62 @@ def left_right_ocean(rate, duration, detailed_data: bool = False):
 
     return output_signal
 
+def check_filter(rate: int, duration: int, volume: float, ftype: str, forder: int, freqs, detailed_data: bool = False):
+    N = duration*rate
+    x = np.random.rand(N, 2)
+
+    b, a = signal.butter(forder, freqs, btype=ftype, fs=rate)
+    y = signal.lfilter(b ,a, x, axis=0)
+
+    output_signal = amplitude_norm(y, volume)
+
+    if detailed_data:
+        filter(b, a, sample_rate)
+        afr(output_signal[:,0], sample_rate)
+
+    return output_signal
+
+#------------------ Генерация звука (фиолетовый шум) -------------------
+sample_rate, duration, vol = 44100, 10, 0.5
+output_signal = check_filter(sample_rate, duration, vol, "high", 2, 2200, detailed_data=True)
+visualize(output_signal, sample_rate)
+io.wavfile.write("4/violet_noise.wav", sample_rate, output_signal)
+plt.show()
 
 #------------------ Генерация звука (право <=> лево) -------------------
 sample_rate, duration = 44100, 10
 output_signal = left_right_ocean(sample_rate, duration, detailed_data=False)
 visualize(output_signal, sample_rate)
-
+io.wavfile.write("4/ocean_noise.wav", sample_rate, output_signal)
 plt.show()
-io.wavfile.write("4/test.wav", sample_rate, output_signal)
 
 #------------------ Генерация звука () -------------------
-N = sample_rate*duration
+# N = sample_rate*duration
 
-x = np.random.rand(N, 2) * 2 - 0.5
+# x = np.random.rand(N, 2) * 2 - 0.5
 eps1 = 0.01
-dn1, up1 = 1 - eps1, 1 + eps1
+# dn1, up1 = 1 - eps1, 1 + eps1
 f1 = 880
-b, a = signal.butter(2, [dn1*f1, up1*f1], btype='bandpass', fs=sample_rate)
-y1 = signal.lfilter(b, a, x, axis=0)
+# b, a = signal.butter(2, [dn1*f1, up1*f1], btype='bandpass', fs=sample_rate)
+# y1 = signal.lfilter(b, a, x, axis=0)
 
 eps2 = 0.1
-dn2, up2 = 1 - eps2, 1 + eps2
+# dn2, up2 = 1 - eps2, 1 + eps2
 f2 = 5*f1
-b, a = signal.butter(2, [dn2*f2, up2*f2], btype='bandpass', fs=sample_rate)
-y2 = signal.lfilter(b, a, x, axis=0)
+# b, a = signal.butter(2, [dn2*f2, up2*f2], btype='bandpass', fs=sample_rate)
+# y2 = signal.lfilter(b, a, x, axis=0)
 
-y12 = np.zeros_like(y1)
+# y12 = np.zeros_like(y1)
 
-for i in range(N):
-    alfa = 1/(1 + np.exp(-10*(2*(i-N/2)/N)))
-    y12[i:,] = y1[i:,] * (1-alfa) + y2[i:,] * alfa
-    y12[i:,] = y12[i:,] * np.exp(-i/N)*np.cos(6*np.pi*i/N)
+# for i in range(N):
+    # функция норм, но нужно переделать
+    # alfa = np.exp(-i/N)*abs(np.cos(12*np.pi*i/N)**2)
+    # y12[i:,] = y1[i:,] * (1-alfa) + y2[i:,] * alfa
 
-output_signal = amplitude_norm(y12, 0.5)
-visualize(output_signal, sample_rate)
-io.wavfile.write("4/test2.wav", sample_rate, output_signal)
-plt.show()
+# output_signal = amplitude_norm(y12, 0.5)
+# visualize(output_signal, sample_rate)
+# io.wavfile.write("4/test2.wav", sample_rate, output_signal)
+# plt.show()
 '''
 TODO:
 [] Изучить шаблоны в методе, изменить параметры
