@@ -80,23 +80,42 @@ def left_right_ocean(rate, duration, detailed_data: bool = False):
     if detailed_data:
         filter(b, a, sample_rate)
         afr(output_signal[:,0], sample_rate)
-
     return output_signal
 
-def check_filter(rate: int, duration: int, volume: float, ftype: str, forder: int, freqs, detailed_data: bool = False):
+def check_filter(rate: int, duration: int, volume: float, 
+                 ftype: str, forder: int, freqs, detailed_data: bool = False):
     N = duration*rate
     x = np.random.rand(N, 2)
-
     b, a = signal.butter(forder, freqs, btype=ftype, fs=rate)
     y = signal.lfilter(b ,a, x, axis=0)
-
     output_signal = amplitude_norm(y, volume)
-
     if detailed_data:
         filter(b, a, sample_rate)
         afr(output_signal[:,0], sample_rate)
-
     return output_signal
+
+def ambulance_siren(rate: int, duration: int, volume: float, eps: float):
+    N = rate*duration
+    f1, f2 = 614, 1844
+    span = 0.5
+    dn, up = 1 - eps, 1 + eps
+
+    signal_low = check_filter(sample_rate, duration, volume, "bandpass", 2, [dn*f1, up*f1])
+    signal_high = check_filter(sample_rate, duration, volume, "bandpass", 2, [dn*f2, up*f2])
+
+    result = np.zeros_like(signal_low, dtype=np.float64)
+    up = True
+    for i in range(1, N+1):
+        if up:
+            result[i:,] = signal_high[i:,]
+        else:
+            result[i:,] = signal_low[i:,]
+        if i % (sample_rate*span) == 0:
+            up = not up
+            print(f"Прогресс: {i/N * 100:.2f}%")
+        result[i:,] *= np.exp(-2*i/N)
+    result = amplitude_norm(result, 0.5)
+    return result
 
 #------------------ Генерация звука (фиолетовый шум) -------------------
 sample_rate, duration, vol = 44100, 10, 0.5
@@ -107,41 +126,19 @@ plt.show()
 
 #------------------ Генерация звука (право <=> лево) -------------------
 sample_rate, duration = 44100, 10
-output_signal = left_right_ocean(sample_rate, duration, detailed_data=False)
+output_signal = left_right_ocean(sample_rate, duration, detailed_data=True)
 visualize(output_signal, sample_rate)
 io.wavfile.write("4/ocean_noise.wav", sample_rate, output_signal)
 plt.show()
 
-#------------------ Генерация звука () -------------------
-# N = sample_rate*duration
-
-# x = np.random.rand(N, 2) * 2 - 0.5
-eps1 = 0.01
-# dn1, up1 = 1 - eps1, 1 + eps1
-f1 = 880
-# b, a = signal.butter(2, [dn1*f1, up1*f1], btype='bandpass', fs=sample_rate)
-# y1 = signal.lfilter(b, a, x, axis=0)
-
-eps2 = 0.1
-# dn2, up2 = 1 - eps2, 1 + eps2
-f2 = 5*f1
-# b, a = signal.butter(2, [dn2*f2, up2*f2], btype='bandpass', fs=sample_rate)
-# y2 = signal.lfilter(b, a, x, axis=0)
-
-# y12 = np.zeros_like(y1)
-
-# for i in range(N):
-    # функция норм, но нужно переделать
-    # alfa = np.exp(-i/N)*abs(np.cos(12*np.pi*i/N)**2)
-    # y12[i:,] = y1[i:,] * (1-alfa) + y2[i:,] * alfa
-
-# output_signal = amplitude_norm(y12, 0.5)
-# visualize(output_signal, sample_rate)
-# io.wavfile.write("4/test2.wav", sample_rate, output_signal)
-# plt.show()
-'''
-TODO:
-[] Изучить шаблоны в методе, изменить параметры
-[] Создать собственный шумоподобный сигнал (метод формирующего фильтра)
-[] Дополнительно: сформировать реалистичный звук таким же методом
-'''
+#------------------ Генерация звука (сирена скорой помощи) -------------------
+sample_rate, input_signal = io.wavfile.read("4/siren_sample.wav")
+afr(input_signal[:, 0], sample_rate)
+visualize(input_signal, sample_rate)
+plt.show()
+sample_rate, duration = 44100, 10
+output_signal = ambulance_siren(sample_rate, duration, 0.5, 0.01)
+afr(output_signal[:,0], sample_rate)
+visualize(output_signal, sample_rate)
+io.wavfile.write("4/ambulance_noise.wav", sample_rate, output_signal.astype(np.int16))
+plt.show()
