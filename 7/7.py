@@ -52,8 +52,6 @@ def compare2imgs(img1, img2, title1: str, title2: str, main_title: str) -> None:
     plt.imshow(cv2.cvtColor(img2, cv2.COLOR_BGR2RGB))
     plt.axis('off')
 
-
-
 # Повышение фокусировки фильтром Лапласа
 def laplas_filter(img, c: float):
     kernel = np.array([
@@ -64,19 +62,8 @@ def laplas_filter(img, c: float):
     filtered_image = cv2.filter2D(img, -1, kernel)
     return filtered_image
 
-
-#------------------ Основная функция -------------------
-blured_city = cv2.imread('7/st_petersburg.jpg', cv2.IMREAD_COLOR)
-
-# Применение фильтра Лапласа
-c = 0.5
-remove_blured_city = laplas_filter(blured_city, c)
-compare2imgs(blured_city, remove_blured_city, 'Исходная картинка', 
-             f'Фильтр Лапласа ({c = })', 'Сравнение результата повышения четкости')
-
-# plt.show()
-
-def generate_sgrid(p2):
+# Функция создания маски для сферической расфокусировки
+def fspecial_disk_selfmade(p2):
     rad = p2
     crad = int(np.ceil(rad - 0.5))
     
@@ -84,26 +71,22 @@ def generate_sgrid(p2):
     y_min, y_max = -crad, crad
     
     x, y = np.meshgrid(np.arange(x_min, x_max + 1), np.arange(y_min, y_max + 1))
+    
     maxxy = np.maximum(np.abs(x), np.abs(y))
-    minxy = np.minimum(np.abs(x), np.abs(x))
+    minxy = np.minimum(np.abs(x), np.abs(y))
     
-    m1 = (rad**2 < (maxxy+0.5)**2 + (minxy-0.5)).astype(float) * (minxy-0.5) + \
-         (rad**2 >= (maxxy+0.5)**2 + (minxy-0.5)).astype(float) * np.sqrt(rad**2 - (maxxy + 0.5)**2)
-    
-    m2 = (rad**2 > (maxxy-0.5)**2 + (minxy+0.5)).astype(float) * (minxy+0.5) + \
-         (rad**2 <= (maxxy-0.5)**2 + (minxy+0.5)).astype(float) * np.sqrt(rad**2 - (maxxy - 0.5)**2)
-    
+    m1 = np.where(rad**2 < (maxxy + 0.5)**2 + (minxy - 0.5)**2, (minxy - 0.5), np.sqrt(np.abs(rad**2 - (maxxy + 0.5)**2)))
+    m2 = np.where(rad**2 > (maxxy - 0.5)**2 + (minxy + 0.5)**2, (minxy + 0.5), np.sqrt(np.abs(rad**2 - (maxxy - 0.5)**2)))
+
     term1 = rad**2 * (0.5 * (np.arcsin(m2/rad) - np.arcsin(m1/rad)) + 0.25 * (np.sin(2*np.arcsin(m2/rad)) - np.sin(2*np.arcsin(m1/rad))))
     term2 = (maxxy-0.5) * (m2-m1)
     term3 = (m1-minxy+0.5)
-    
     mask = (((rad**2 < (maxxy+0.5)**2 + (minxy+0.5)**2) & (rad**2 > (maxxy-0.5)**2 + (minxy-0.5)**2)) | ((minxy==0) & (maxxy-0.5 < rad) & (maxxy+0.5>=rad)))
-    
+
     sgrid = (term1 - term2 + term3) * mask
     sgrid += ((maxxy+0.5)**2 + (minxy+0.5)**2 < rad**2)
-    
     sgrid[crad+1, crad+1] = min(np.pi*rad**2, np.pi/2)
-    
+
     if crad > 0 and rad > crad-0.5 and rad**2 < (crad-0.5)**2+0.25:
         m1 = np.sqrt(rad**2 - (crad - 0.5)**2)
         m1n = m1/rad
@@ -117,16 +100,37 @@ def generate_sgrid(p2):
         sgrid[crad+1, 2] -= sg0
         sgrid[2, crad+1] -= sg0
     
+    
     sgrid[crad+1, crad+1] = min(sgrid[crad+1, crad+1], 1)
     h = sgrid / np.sum(sgrid)
-    
     return h
 
-P = 5  # Радиус диска
-PSF = generate_sgrid(P)
+# Функция размыливания картинки
+def bluring_image(img, radius: int):
+    PSF = fspecial_disk_selfmade(radius)
+    distorted_image = cv2.filter2D(img, -1, PSF)
+    return distorted_image
 
-print(PSF)
-print(PSF.shape)
+#------------------ Основная функция -------------------
+city = cv2.imread('7/st_petersburg.jpg', cv2.IMREAD_COLOR)
+
+# Применение фильтра Лапласа
+c = 0.5
+remove_blured_city = laplas_filter(city, c)
+compare2imgs(city, remove_blured_city, 'Исходная картинка', 
+             f'Фильтр Лапласа ({c = })', 'Сравнение результата повышения четкости')
+
+# Размыливание картинки
+intense = 5
+blured_city = bluring_image(city, intense)
+compare2imgs(city, blured_city, 'Исходная картинка', 
+             f'Размыливание картинки ({intense = })', 'Сравнение результата повышения четкости')
+
+
+
+
+
+plt.show()
 
 '''
 Реализовать два метода компенсации смазывания изображений
@@ -136,6 +140,8 @@ TODO:
 [x] Выбрать изображение
 [x] Исказить изображение "смазыванием", без дополнительного зашумления (листинг 2)
 [] Компенсировать созданные искажения (листинг 3)
+    [] Переписать deconvreg()
+    [x] restoration.wiener()
 [] Исказить смазанное изображение при помощи шума по варианту
 [] Повторить процедуру восстановления (+ сравнение результатов)
 [] Взять изображение с расфокусировкой, оценить модель искажения, провести восстановление
@@ -149,21 +155,5 @@ S = imfilter(input_image, PSF,'replicate');
 % гауссовский шум (с нормированной дисперсией 0.0001)
 distorted_image = imnoise(S,'gaussian',0,0.0001);
 % т.о. нормированное СКО равно 0.01 отн. ед., значит без нормировки это дает 2.55 ед. яркости
-
-
->> temp
-         0         0         0    0.0012    0.0050    0.0063    0.0050    0.0012         0         0         0
-         0    0.0000    0.0062    0.0124    0.0127    0.0127    0.0127    0.0124    0.0062    0.0000         0
-         0    0.0062    0.0127    0.0127    0.0127    0.0127    0.0127    0.0127    0.0127    0.0062         0
-    0.0012    0.0124    0.0127    0.0127    0.0127    0.0127    0.0127    0.0127    0.0127    0.0124    0.0012
-    0.0050    0.0127    0.0127    0.0127    0.0127    0.0127    0.0127    0.0127    0.0127    0.0127    0.0050
-    0.0063    0.0127    0.0127    0.0127    0.0127    0.0127    0.0127    0.0127    0.0127    0.0127    0.0063
-    0.0050    0.0127    0.0127    0.0127    0.0127    0.0127    0.0127    0.0127    0.0127    0.0127    0.0050
-    0.0012    0.0124    0.0127    0.0127    0.0127    0.0127    0.0127    0.0127    0.0127    0.0124    0.0012
-         0    0.0062    0.0127    0.0127    0.0127    0.0127    0.0127    0.0127    0.0127    0.0062         0
-         0    0.0000    0.0062    0.0124    0.0127    0.0127    0.0127    0.0124    0.0062    0.0000         0
-         0         0         0    0.0012    0.0050    0.0063    0.0050    0.0012         0         0         0
-
->> 
 
 '''
