@@ -4,21 +4,31 @@ import functions as f
 
 #------------------ Основная функция -------------------
 city = cv2.imread('7/st_petersburg.jpg', cv2.IMREAD_COLOR)
-f.image_spectre(city, True)
+# f.image_spectre(city, True)
 
 # Применение фильтра Лапласа
 c = 0.5
 remove_blured_city = f.laplas_filter(city, c)
-f.image_spectre(remove_blured_city, True)
-f.compare2imgs(city, remove_blured_city, 'Исходная картинка', 
-             f'Фильтр Лапласа ({c = })', 'Сравнение результата повышения четкости')
+# f.image_spectre(remove_blured_city, True)
+# f.compare2imgs(city, remove_blured_city, 'Исходная картинка', 
+            #  f'Фильтр Лапласа ({c = })', 'Сравнение результата повышения четкости')
 
 # Размыливание картинки
 intense = 5
 blured_city, PSF = f.bluring_image(city, intense)
-f.image_spectre(blured_city, True)
-f.compare2imgs(city, blured_city, 'Исходная картинка', 
-             f'Размыливание картинки ({intense = })', 'Сравнение результата понижения четкости')
+# f.image_spectre(blured_city, True)
+# f.compare2imgs(city, blured_city, 'Исходная картинка', 
+            #  f'Размыливание картинки ({intense = })', 'Сравнение результата понижения четкости')
+
+# Восстановления картинки Тихоновым - не удалось
+
+# Восстановление картинки Винером - ч/б
+noise_level = 0.01
+unblured_city = f.wiener(blured_city, PSF, noise_level)
+f.image_spectre(unblured_city, True)
+f.compare2imgs(blured_city, unblured_city, 'Смазанная картинка', 
+              f'Восстановленная картинка ', 'Сравнение результата понижения четкости')
+
 
 
 plt.show()
@@ -28,11 +38,11 @@ plt.show()
 Исследовать влияние неточности задания модели искажения в алгоритм
 
 TODO:
-[x] Выбрать изображение
-[x] Исказить изображение "смазыванием", без дополнительного зашумления (листинг 2)
-[] Компенсировать созданные искажения (листинг 3)
-    [] Переписать deconvreg()
-    [x] restoration.wiener()
+[+] Выбрать изображение
+[+] Исказить изображение "смазыванием", без дополнительного зашумления (листинг 2)
+[+] Компенсировать созданные искажения (листинг 3)
+    [-] Переписать deconvreg()
+    [+-] restoration.wiener()
 [] Исказить смазанное изображение при помощи шума по варианту
 [] Повторить процедуру восстановления (+ сравнение результатов)
 [] Взять изображение с расфокусировкой, оценить модель искажения, провести восстановление

@@ -1,6 +1,7 @@
 import cv2
 import numpy as np
 import matplotlib.pyplot as plt
+from skimage import restoration, color
 
 # Функция вычисления спектра изображения
 def calcspec(img, for_graph: bool = False):
@@ -110,3 +111,11 @@ def bluring_image(img, radius: int):
     distorted_image = cv2.filter2D(img, -1, PSF)
     return distorted_image, PSF
 
+# Функция восстановления методом Винера
+def wiener(img, psf, noise_level):
+    img = color.rgb2gray(img)
+    J = restoration.wiener(img, psf, noise_level)
+    J = color.gray2rgb(J)
+    max_J = np.max(J)
+    output = np.uint8((J / max_J) * 255)
+    return output
