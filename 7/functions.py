@@ -1,6 +1,8 @@
 import cv2
 import numpy as np
 import matplotlib.pyplot as plt
+from skimage import restoration, color
+from skimage.util import random_noise
 
 # Функция вычисления спектра изображения
 def calcspec(img, for_graph: bool = False):
@@ -22,7 +24,7 @@ def image_spectre(img, spectre_calc) -> None:
     plt.figtext(0.5, 0.95, 'Картинка и её спектр', ha='center', va='center', fontsize=14)
 
     plt.subplot(121)
-    plt.title('Исходное изображение')
+    plt.title('Изображение')
     plt.imshow(cv2.cvtColor(img, cv2.COLOR_BGR2RGB))
     plt.axis('off')
 
@@ -110,3 +112,18 @@ def bluring_image(img, radius: int):
     distorted_image = cv2.filter2D(img, -1, PSF)
     return distorted_image, PSF
 
+# Функция восстановления методом Винера
+def wiener(img, psf, noise_level):
+    img = color.rgb2gray(img)
+    J = restoration.wiener(img, psf, noise_level)
+    J = color.gray2rgb(J)
+    max_J = np.max(J)
+    output = np.uint8((J / max_J) * 255)
+    return output
+
+# Функция добавления гауссовского шума
+def gaussian_noise(img, mean=0, var=0.01):
+    noisy_image = random_noise(img, mode="gaussian", mean=mean, var=var)
+    max_J = np.max(noisy_image)
+    output = np.uint8((noisy_image / max_J) * 255)
+    return output
